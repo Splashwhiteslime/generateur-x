@@ -1,0 +1,72 @@
+# pervers.py
+
+def get_defis(mode):
+    defis = {
+        "Mixte": [
+            "PRÉSENTIEL : Masse l'intérieur de sa cuisse le plus haut possible sans toucher l'entrejambe.",
+            "WHATSAPP : Envoie une photo 'Vue Unique' de tes sous-vêtements portés.",
+            "PRÉSENTIEL : Lèche une goutte de boisson ou de sirop sur son cou ou son torse.",
+            "DISTANCE : Envoie un message vocal de 20s en décrivant tes gémissements si l'autre était là.",
+            "PRÉSENTIEL : Enlève un vêtement de l'autre en utilisant uniquement tes dents.",
+            "WHATSAPP : Écris ton scénario X préféré avec l'autre par message détaillé.",
+            "PRÉSENTIEL : Mords doucement son lobe d'oreille puis souffle de l'air chaud dedans.",
+            "DISTANCE : Montre à la caméra ta zone la plus érogène (sans tout dévoiler).",
+            "PRÉSENTIEL : Utilise un glaçon pour tracer un chemin de son cou jusqu'à son nombril.",
+            "WHATSAPP : Envoie un message vocal de 10s de ton souffle rapide comme si tu jouissais.",
+            "PRÉSENTIEL : Mime une position sexuelle explicite et il/elle doit deviner laquelle c'est.",
+            "DISTANCE : Caresse-toi devant l'écran en fixant intensément l'autre dans les yeux.",
+            "PRÉSENTIEL : Laisse l'autre explorer ton corps avec ses mains sous tes vêtements (30s).",
+            "WHATSAPP : Envoie une photo de l'endroit précis où tu veux être embrassé(e) maintenant.",
+            "PRÉSENTIEL : Embrasse l'autre langoureusement avec la langue pendant 15 secondes.",
+            "DISTANCE : Enlève ton bas (pantalon/jupe) face caméra et reste ainsi pour le prochain tour.",
+            "PRÉSENTIEL : Fais-lui un massage des fesses avec tes mains nues.",
+            "WHATSAPP : Écris un message très cru décrivant ce que tu ressens dans ton corps en ce moment.",
+            "PRÉSENTIEL : Glisse ta main dans son pantalon et reste immobile 10 secondes.",
+            "DISTANCE : Fais une vidéo de 5 secondes très suggestive (langue, regard) et envoie-la."
+        ],
+        "F-F": [
+            "PRÉSENTIEL : Masse sa poitrine par-dessus ses vêtements pendant 1 minute.",
+            "WHATSAPP : Envoie-lui un selfie ultra suggestif avec une légende provocante.",
+            "PRÉSENTIEL : Embrasse-la dans le cou et mords doucement son lobe d'oreille.",
+            "DISTANCE : Décris par message ton fantasme le plus fou impliquant une autre femme.",
+            "PRÉSENTIEL : Allonge-toi sur elle, corps contre corps, et sens sa chaleur pendant 1 min.",
+            "WHATSAPP : Envoie une photo de ta lingerie actuelle (Vue Unique).",
+            "PRÉSENTIEL : Caresse ses hanches lentement en lui murmurant ce que tu aimes chez elle.",
+            "DISTANCE : Fais une danse sexy (twerk ou ondulations) devant la caméra juste pour elle.",
+            "PRÉSENTIEL : Lèche une zone de son corps qu'elle choisira (bras, cou, épaule).",
+            "WHATSAPP : Envoie un vocal où tu lui dis ce que tu aimerais lui faire avec ta langue.",
+            "PRÉSENTIEL : Retire ton soutien-gorge sans enlever ton haut et donne-le lui.",
+            "DISTANCE : Prends une photo de tes lèvres avec une goutte de liquide dessus.",
+            "PRÉSENTIEL : Assieds-toi sur ses genoux et frotte tes hanches contre les siennes.",
+            "WHATSAPP : Envoie une photo de tes mains avec le message 'Devine où elles sont'.",
+            "PRÉSENTIEL : Explore son décolleté avec tes doigts pendant que tu lui racontes une histoire.",
+            "DISTANCE : Montre tes fesses à la caméra pendant 5 secondes en bougeant.",
+            "PRÉSENTIEL : Donne-lui un baiser 'papillon' (cils contre sa joue) puis un baiser mordu.",
+            "WHATSAPP : Envoie un message décrivant la tenue érotique que tu aimerais qu'elle porte.",
+            "PRÉSENTIEL : Laisse-la te donner une fessée pour chaque fois que tu la regardes dans les yeux.",
+            "DISTANCE : Simule un orgasme face caméra en fermant les yeux."
+        ],
+        "G-G": [
+            "PRÉSENTIEL : Masse-lui les trapèzes et le cou avec force et insistance.",
+            "DISTANCE : Envoie un message vocal avec ta voix la plus grave et chaude possible.",
+            "PRÉSENTIEL : Porte-le contre toi, torse contre torse, pendant 30 secondes.",
+            "DISTANCE : Envoie une photo de tes abdos ou de tes muscles contractés.",
+            "PRÉSENTIEL : Donne-lui un ordre dominant qu'il doit exécuter immédiatement.",
+            "WHATSAPP : Décris par message ce que tu trouves de plus viril et excitant chez lui.",
+            "PRÉSENTIEL : Plaque-le contre le mur et rapproche ton visage à 1cm du sien.",
+            "DISTANCE : Enlève ton t-shirt face caméra et contracte tes pectoraux.",
+            "PRÉSENTIEL : Caresse sa cuisse de façon très appuyée pendant qu'il te parle.",
+            "WHATSAPP : Envoie une photo de tes mains avec le message 'Imagine-les sur toi'.",
+            "PRÉSENTIEL : Mords-lui l'épaule assez fort pour laisser une petite marque.",
+            "DISTANCE : Rapproche l'objectif de ton entrejambe (en pantalon) pour montrer ta réaction.",
+            "PRÉSENTIEL : Défie-le au bras de fer : le perdant doit enlever un vêtement.",
+            "WHATSAPP : Envoie un vocal décrivant ta dernière expérience osée entre hommes.",
+            "PRÉSENTIEL : Glisse ta main sous son t-shirt et caresse son torse/dos.",
+            "DISTANCE : Fais une pose de bodybuilder ultra-sexy face caméra.",
+            "PRÉSENTIEL : Assieds-toi à côté de lui et pose ta main sur son paquet pendant 10s.",
+            "WHATSAPP : Envoie une photo de ton lit avec le message 'Viens me dominer'.",
+            "PRÉSENTIEL : Lèche ton pouce et passe-le lentement sur ses lèvres.",
+            "DISTANCE : Déboutonne ton pantalon face caméra et laisse-le glisser un peu."
+        ]
+    }
+    return defis.get(mode, defis["Mixte"])
