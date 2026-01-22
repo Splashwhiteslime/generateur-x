@@ -6,7 +6,7 @@ from streamlit_gsheets import GSheetsConnection
 # --- CONFIGURATION ---
 TRAITS_DISPO = ["pervers", "salope", "provocateur", "exhibionniste", "tendance_lesbie", "audacieux", "soumis", "dominant", "souple", "sportif", "timide", "coquin", "voyeur", "romantique", "esclave", "gourmand", "intello", "sournois", "menteur"]
 
-st.set_page_config(page_title="Divine Pulse", page_icon="🔥", layout="wide")
+st.set_page_config(page_title="Stream Pulse", page_icon="👿", layout="wide")
 
 # --- AUDIO & STYLE PREMIUM ---
 SOUND_NOTIF = "https://www.soundjay.com/buttons/sounds/button-3.mp3"
@@ -194,3 +194,4 @@ if room_id:
 
         if role == "A" and st.sidebar.button("♻️ Reset Salon"): doc_ref.delete(); st.query_params.clear(); st.rerun()
         time.sleep(4); st.rerun()
+
