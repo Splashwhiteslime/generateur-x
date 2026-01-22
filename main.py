@@ -1,5 +1,5 @@
 import streamlit as st
-import random, urllib.parse, pd, time, requests, firebase_admin
+import random, urllib.parse, pandas as pd, time, requests, firebase_admin
 from firebase_admin import credentials, firestore
 from streamlit_gsheets import GSheetsConnection
 
@@ -147,3 +147,4 @@ else:
 
     time.sleep(3)
     st.rerun()
+
