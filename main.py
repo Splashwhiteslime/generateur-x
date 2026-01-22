@@ -12,13 +12,12 @@ TRAITS_DISPO = ["pervers", "salope", "provocateur", "exhibionniste", "tendance_l
 st.set_page_config(page_title="Générateur X Live", layout="wide")
 conn = st.connection("gsheets", type=GSheetsConnection)
 
-# --- FONCTIONS ---
+# --- FONCTIONS TECHNIQUES ---
 def reduire_url(url_longue):
     try:
         api_url = f"http://tinyurl.com/api-create.php?url={urllib.parse.quote(url_longue)}"
         return requests.get(api_url, timeout=5).text
-    except:
-        return url_longue
+    except: return url_longue
 
 def push_state(j1_t, j1_d, j2_t, j2_d):
     df_sync = pd.DataFrame([{"ID": "LIVE", "J1_Trait": j1_t, "J1_Defi": j1_d, "J2_Trait": j2_t, "J2_Defi": j2_d}])
@@ -28,20 +27,16 @@ def pull_state():
     try:
         df = conn.read(worksheet="Session", ttl=0)
         return df.iloc[0]
-    except:
-        return None
+    except: return None
 
 def obtenir_defis(trait_nom, genre_session):
-    """Filtre par trait ET par genre (ex: Mixte, H/H, F/F)"""
     try:
         df = conn.read(worksheet="Sheet1", ttl=10) 
-        # On garde les défis du trait qui correspondent au genre choisi OU marqués 'Tous'
         mask = (df['Trait'].str.lower() == trait_nom.lower()) & \
                (df['Genre'].isin([genre_session, "Tous"]))
         res = df[mask]['Défi'].tolist()
-        return res if res else [f"Fais un bisou ({genre_session})"]
-    except:
-        return ["Fais un bisou"]
+        return res if res else [f"Défi par défaut ({genre_session})"]
+    except: return ["Fais un bisou"]
 
 def ajouter_nouveau_defi_base(trait, texte, auteur, genre):
     try:
@@ -57,35 +52,44 @@ query_params = st.query_params
 role = query_params.get("role", "A")
 genre_actuel = query_params.get("genre", "Mixte")
 
-# --- ETAPE 1 : SETUP ---
+# --- ETAPE 1 : SETUP (DÉDUCTION AUTOMATIQUE DU GENRE) ---
 if "ready_check" not in query_params and "j2_nom" not in query_params:
-    st.title("🔥 Configuration Session Live")
+    st.title("🔥 Setup Session Live")
     
-    col_inf1, col_inf2, col_inf3 = st.columns(3)
-    with col_inf1: j1 = st.text_input("Prénom A")
-    with col_inf2: j2 = st.text_input("Prénom B")
-    with col_inf3: genre_sel = st.selectbox("Type de rencontre", ["Mixte", "H/H", "F/F"])
+    col1, col2 = st.columns(2)
+    with col1:
+        j1 = st.text_input("Prénom Joueur A")
+        sexe_a = st.radio(f"Sexe de {j1 if j1 else 'A'}", ["Homme", "Femme"], horizontal=True)
+    with col2:
+        j2 = st.text_input("Prénom Joueur B")
+        sexe_b = st.radio(f"Sexe de {j2 if j2 else 'B'}", ["Homme", "Femme"], horizontal=True)
+    
+    # DÉDUCTION AUTOMATIQUE
+    if sexe_a == "Homme" and sexe_b == "Homme": genre_auto = "H/H"
+    elif sexe_a == "Femme" and sexe_b == "Femme": genre_auto = "F/F"
+    else: genre_auto = "Mixte"
+    
+    st.info(f"💡 Type de rencontre détecté : **{genre_auto}**")
     
     t_j2 = st.multiselect(f"Traits de {j2} :", TRAITS_DISPO)
     
     if st.button("🚀 Créer la session"):
-        # Tirage initial selon le genre
         t1 = random.choice(TRAITS_DISPO)
-        d1 = random.choice(obtenir_defis(t1, genre_sel))
+        d1 = random.choice(obtenir_defis(t1, genre_auto))
         t2 = random.choice(t_j2) if t_j2 else random.choice(TRAITS_DISPO)
-        d2 = random.choice(obtenir_defis(t2, genre_sel))
+        d2 = random.choice(obtenir_defis(t2, genre_auto))
         
         push_state(t1, d1, t2, d2)
         
         base_url = "https://generateur-x-live.streamlit.app/"
-        p = {"j1_nom": j1, "j2_nom": j2, "ready_check": "yes", "j2_traits": t_j2, "genre": genre_sel}
+        p = {"j1_nom": j1, "j2_nom": j2, "ready_check": "yes", "j2_traits": t_j2, "genre": genre_auto}
         
         url_a = reduire_url(f"{base_url}?{urllib.parse.urlencode({**p, 'role': 'A'})}")
         url_b = reduire_url(f"{base_url}?{urllib.parse.urlencode({**p, 'role': 'B'})}")
         
-        st.success("Session prête !")
-        st.write(f"📱 **Lien A :** `{url_a}`")
-        st.write(f"🎁 **Lien B :** `{url_b}`")
+        st.success("Session configurée !")
+        st.write(f"📱 **Ton lien (A) :** `{url_a}`")
+        st.write(f"🎁 **Lien Partenaire (B) :** `{url_b}`")
 
 # --- ETAPE 2 : ZONE DE JEU ---
 else:
