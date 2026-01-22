@@ -1,173 +1,149 @@
 import streamlit as st
-import random
-import urllib.parse
-import pandas as pd
-import time
-import requests
-import firebase_admin
+import random, urllib.parse, pd, time, requests, firebase_admin
 from firebase_admin import credentials, firestore
 from streamlit_gsheets import GSheetsConnection
 
 # --- CONFIGURATION ---
 TRAITS_DISPO = ["pervers", "salope", "provocateur", "exhibionniste", "tendance_lesbie", "audacieux", "soumis", "dominant", "souple", "sportif", "timide", "coquin", "voyeur", "romantiaue", "esclave", "gourmand", "intello", "sournois", "menteur"]
 
-st.set_page_config(page_title="Générateur X Live", layout="wide")
+st.set_page_config(page_title="Générateur X Live - Full Audio", layout="wide")
+
+# --- SYSTÈME AUDIO & CSS ---
+# Notification (quand on reçoit un nouveau défi)
+SOUND_NOTIF = "https://www.soundjay.com/buttons/sounds/button-3.mp3"
+# Validation (quand on valide l'autre)
+SOUND_VALID = "https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3"
+
+st.markdown(f"""
+    <style>
+    div.stButton > button:first-child {{
+        background-color: #28a745; color: white; border-radius: 12px;
+        height: 3.5em; width: 100%; font-weight: bold; font-size: 18px;
+        border: none; box-shadow: 0px 4px 10px rgba(0,0,0,0.2);
+    }}
+    .score-box {{
+        font-size: 22px; font-weight: bold; text-align: center;
+        padding: 10px; background-color: #f0f2f6; border-radius: 10px;
+        margin-bottom: 15px; border: 1px solid #ddd;
+    }}
+    </style>
+    <audio id="notif-sound" src="{SOUND_NOTIF}" preload="auto"></audio>
+    <audio id="valid-sound" src="{SOUND_VALID}" preload="auto"></audio>
+""", unsafe_allow_html=True)
 
 # --- CONNEXIONS ---
-# 1. Google Sheets (Lecture des défis existants)
 conn_sheets = st.connection("gsheets", type=GSheetsConnection)
-
-# 2. Firebase (Synchronisation et nouveaux défis)
 if not firebase_admin._apps:
-    try:
-        fb_dict = dict(st.secrets["firebase"])
-        cred = credentials.Certificate(fb_dict)
-        firebase_admin.initialize_app(cred)
-    except Exception as e:
-        st.error("Erreur de connexion Firebase. Vérifie tes Secrets.")
-
+    fb_dict = dict(st.secrets["firebase"])
+    cred = credentials.Certificate(fb_dict)
+    firebase_admin.initialize_app(cred)
 db = firestore.client()
 
-# --- FONCTIONS TECHNIQUES ---
-
-def reduire_url(url_longue):
-    """Raccourcit l'URL via TinyURL"""
-    try:
-        api_url = f"http://tinyurl.com/api-create.php?url={urllib.parse.quote(url_longue)}"
-        return requests.get(api_url, timeout=5).text
-    except:
-        return url_longue
-
-def push_state(j1_t, j1_d, j2_t, j2_d):
-    """Met à jour la session live dans Firebase"""
+# --- FONCTIONS ---
+def push_state(j1_t, j1_d, j2_t, j2_d, s1, s2, pw1, pw2):
     db.collection("sessions").document("LIVE").set({
-        "J1_Trait": j1_t, "J1_Defi": j1_d,
-        "J2_Trait": j2_t, "J2_Defi": j2_d,
-        "timestamp": time.time()
+        "J1_Trait": j1_t, "J1_Defi": j1_d, "J1_Score": s1, "J1_PW": pw1,
+        "J2_Trait": j2_t, "J2_Defi": j2_d, "J2_Score": s2, "J2_PW": pw2,
+        "update_ts": time.time()
     })
 
 def pull_state():
-    """Lit l'état actuel de la session"""
     doc = db.collection("sessions").document("LIVE").get()
     return doc.to_dict() if doc.exists else None
 
-def ajouter_nouveau_defi_firebase(trait, texte, auteur, genre):
-    """Enregistre un nouveau défi dans Firestore"""
-    db.collection("nouveaux_defis").add({
-        "Trait": trait.lower(),
-        "Défi": texte,
-        "Auteur": auteur,
-        "Genre": genre,
-        "Date": time.time()
-    })
-
-def obtenir_defis_combines(trait_nom, genre_session):
-    """Récupère Sheets + Firebase"""
-    liste_defis = []
-    
-    # Lecture Sheets
+def obtenir_defis(trait_nom, genre_session):
     try:
-        df_s = conn_sheets.read(worksheet="Sheet1", ttl=10)
-        mask = (df_s['Trait'].str.lower() == trait_nom.lower()) & (df_s['Genre'].isin([genre_session, "Tous"]))
-        liste_defis = df_s[mask]['Défi'].tolist()
-    except: pass
-    
-    # Lecture Firebase
-    try:
-        fb_docs = db.collection("nouveaux_defis").where("Trait", "==", trait_nom.lower()).stream()
-        for doc in fb_docs:
-            d = doc.to_dict()
-            if d.get("Genre") in [genre_session, "Tous"]:
-                liste_defis.append(d["Défi"])
-    except: pass
-        
-    return liste_defis if liste_defis else ["Fais un bisou (Défaut)"]
+        df = conn_sheets.read(worksheet="Sheet1", ttl=10)
+        mask = (df['Trait'].str.lower() == trait_nom.lower()) & (df['Genre'].isin([genre_session, "Tous"]))
+        res = df[mask]['Défi'].tolist()
+        return res if res else ["Fais un bisou très doux"]
+    except: return ["Action par défaut"]
 
-# --- GESTION DES RÔLES ET URL ---
-query_params = st.query_params
-role = query_params.get("role", "A")
-genre_actuel = query_params.get("genre", "Mixte")
+# --- LOGIQUE DE NAVIGATION ---
+params = st.query_params
 
-# --- ETAPE 1 : SETUP ---
-if "ready_check" not in query_params and "j2_nom" not in query_params:
-    st.title("🔥 Setup Session Live")
-    
+if "ready" not in params:
+    st.title("🔥 Setup & Audio")
     col1, col2 = st.columns(2)
     with col1:
-        j1 = st.text_input("Ton Prénom (A)")
-        sexe_a = st.radio(f"Sexe de A", ["Homme", "Femme"], horizontal=True)
+        n1 = st.text_input("Ton Prénom (A)")
+        pw1 = st.text_input("Ton MDP (A)", type="password")
+        t_b = st.multiselect(f"Tempérament de B :", TRAITS_DISPO)
     with col2:
-        j2 = st.text_input("Prénom Partenaire (B)")
-        sexe_b = st.radio(f"Sexe de B", ["Homme", "Femme"], horizontal=True)
-    
-    # Déduction auto du genre
-    genre_auto = "H/H" if sexe_a=="Homme" and sexe_b=="Homme" else "F/F" if sexe_a=="Femme" and sexe_b=="Femme" else "Mixte"
-    st.info(f"Type détecté : **{genre_auto}**")
-    
-    t_j2 = st.multiselect(f"Sélectionne les traits de {j2} :", TRAITS_DISPO)
-    
-    if st.button("🚀 Créer la session"):
-        # Tirage initial
-        t1 = random.choice(TRAITS_DISPO)
-        d1 = random.choice(obtenir_defis_combines(t1, genre_auto))
-        t2 = random.choice(t_j2) if t_j2 else random.choice(TRAITS_DISPO)
-        d2 = random.choice(obtenir_defis_combines(t2, genre_auto))
-        
-        push_state(t1, d1, t2, d2)
-        
-        base_url = "https://generateur-x-live.streamlit.app/"
-        p = {"j1_nom": j1, "j2_nom": j2, "ready_check": "yes", "j2_traits": t_j2, "genre": genre_auto}
-        
-        with st.spinner("Raccourcissement des liens..."):
-            url_a = reduire_url(f"{base_url}?{urllib.parse.urlencode({**p, 'role': 'A'})}")
-            url_b = reduire_url(f"{base_url}?{urllib.parse.urlencode({**p, 'role': 'B'})}")
-        
-        st.success("Session configurée !")
-        st.write(f"📱 **Lien pour TOI (A) :** `{url_a}`")
-        st.write(f"🎁 **Lien pour PARTENAIRE (B) :** `{url_b}`")
+        n2 = st.text_input("Prénom Partenaire (B)")
+        pw2 = st.text_input("Son MDP (B)", type="password")
+        t_a = st.multiselect(f"Tes traits (A) :", TRAITS_DISPO)
 
-# --- ETAPE 2 : ZONE DE JEU ---
+    if st.button("🚀 Lancer avec Audio"):
+        if t_a and t_b and pw1 and pw2:
+            t1, t2 = random.choice(t_b), random.choice(t_a)
+            push_state(t1, random.choice(obtenir_defis(t1, "Mixte")), t2, random.choice(obtenir_defis(t2, "Mixte")), 0, 0, pw1, pw2)
+            p = {"ready": "y", "genre": "Mixte", "n1": n1, "n2": n2, "la": t_a, "lb": t_b}
+            base = "https://generateur-x-live.streamlit.app/"
+            url_b = f"{base}?{urllib.parse.urlencode({**p, 'role': 'B'})}"
+            st.success("C'est prêt !")
+            st.markdown(f"**Lien B :** `{url_b}`")
+            time.sleep(5)
+            st.query_params.update({**p, "role": "A"})
+            st.rerun()
+
 else:
     state = pull_state()
-    if state:
-        st.title(f"💋 {genre_actuel} : {query_params.get('j1_nom')} & {query_params.get('j2_nom')}")
-        st.write(f"Connecté en tant que : **Joueur {role}**")
-        
-        col_a, col_b = st.columns(2)
+    role = params.get("role")
+    
+    if f"auth_{role}" not in st.session_state:
+        st.title("🔒 Connexion")
+        upw = st.text_input("Code :", type="password")
+        if st.button("Entrer"):
+            if upw == (state['J1_PW'] if role == 'A' else state['J2_PW']):
+                st.session_state[f"auth_{role}"] = True
+                st.rerun()
+        st.stop()
 
-        # COLONNE JOUEUR A
-        with col_a:
-            st.header(query_params.get('j1_nom'))
-            st.info(f"**{state['J1_Trait'].upper()}**\n\n{state['J1_Defi']}")
-            if role == "B":
-                if st.button(f"✅ Valider défi de {query_params.get('j1_nom')}"):
-                    new_t = random.choice(TRAITS_DISPO)
-                    push_state(new_t, random.choice(obtenir_defis_combines(new_t, genre_actuel)), state['J2_Trait'], state['J2_Defi'])
-                    st.rerun()
-                with st.expander("🛠 Proposer un autre défi"):
-                    txt = st.text_area("Nouveau texte :", key="mod_a")
-                    if st.button("Enregistrer"):
-                        ajouter_nouveau_defi_firebase(state['J1_Trait'], txt, query_params.get('j2_nom'), genre_actuel)
-                        push_state(state['J1_Trait'], txt, state['J2_Trait'], state['J2_Defi'])
-                        st.rerun()
+    # --- DÉTECTION DU CHANGEMENT (Notification) ---
+    if "last_ts" not in st.session_state:
+        st.session_state.last_ts = state['update_ts']
+    
+    if state['update_ts'] > st.session_state.last_ts:
+        st.session_state.last_ts = state['update_ts']
+        # On ne joue le son de notif QUE si on n'est pas celui qui a validé (pour éviter le double son)
+        if "just_validated" not in st.session_state:
+            st.markdown('<script>document.getElementById("notif-sound").play();</script>', unsafe_allow_html=True)
+        else:
+            del st.session_state["just_validated"]
 
-        # COLONNE JOUEUR B
-        with col_b:
-            st.header(query_params.get('j2_nom'))
-            st.warning(f"**{state['J2_Trait'].upper()}**\n\n{state['J2_Defi']}")
-            if role == "A":
-                if st.button(f"✅ Valider défi de {query_params.get('j2_nom')}"):
-                    ts_b = query_params.get_all("j2_traits")
-                    new_t = random.choice(ts_b) if ts_b else random.choice(TRAITS_DISPO)
-                    push_state(state['J1_Trait'], state['J1_Defi'], new_t, random.choice(obtenir_defis_combines(new_t, genre_actuel)))
-                    st.rerun()
-                with st.expander("🛠 Proposer un autre défi"):
-                    txt = st.text_area("Nouveau texte :", key="mod_b")
-                    if st.button("Enregistrer"):
-                        ajouter_nouveau_defi_firebase(state['J2_Trait'], txt, query_params.get('j1_nom'), genre_actuel)
-                        push_state(state['J1_Trait'], state['J1_Defi'], state['J2_Trait'], txt)
-                        st.rerun()
+    # --- JEU ---
+    st.title(f"🎮 {params.get('n1')} vs {params.get('n2')}")
+    c1, c2 = st.columns(2)
+    
+    with c1:
+        st.markdown(f"<div class='score-box'>Score {params.get('n1')} : {state.get('J1_Score', 0)}</div>", unsafe_allow_html=True)
+        st.info(f"**CIBLE :** {state['J1_Trait'].upper()}\n\n{state['J1_Defi']}")
+        if role == "B":
+            if st.button(f"✅ Valider {params.get('n1')}"):
+                st.session_state["just_validated"] = True
+                st.markdown('<script>document.getElementById("valid-sound").play();</script>', unsafe_allow_html=True)
+                nt = random.choice(params.get_all("lb"))
+                push_state(nt, random.choice(obtenir_defis(nt, "Mixte")), state['J2_Trait'], state['J2_Defi'], state.get('J1_Score', 0)+1, state.get('J2_Score', 0), state['J1_PW'], state['J2_PW'])
+                time.sleep(0.5)
+                st.rerun()
 
-        # Rafraîchissement automatique pour voir les actions de l'autre
-        time.sleep(4)
+    with c2:
+        st.markdown(f"<div class='score-box'>Score {params.get('n2')} : {state.get('J2_Score', 0)}</div>", unsafe_allow_html=True)
+        st.warning(f"**CIBLE :** {state['J2_Trait'].upper()}\n\n{state['J2_Defi']}")
+        if role == "A":
+            if st.button(f"✅ Valider {params.get('n2')}"):
+                st.session_state["just_validated"] = True
+                st.markdown('<script>document.getElementById("valid-sound").play();</script>', unsafe_allow_html=True)
+                nt = random.choice(params.get_all("la"))
+                push_state(state['J1_Trait'], state['J1_Defi'], nt, random.choice(obtenir_defis(nt, "Mixte")), state.get('J1_Score', 0), state.get('J2_Score', 0)+1, state['J1_PW'], state['J2_PW'])
+                time.sleep(0.5)
+                st.rerun()
+
+    if role == "A" and st.sidebar.button("♻️ Reset"):
+        st.query_params.clear()
+        st.session_state.clear()
         st.rerun()
+
+    time.sleep(3)
+    st.rerun()
